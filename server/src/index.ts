@@ -26,7 +26,13 @@ wss.on("connection",function(socket){
             const currentUserRoom=allSocket.find((user)=>user.socket == socket)?.room;
             allSocket.forEach((user)=>{
                 if(user.room == currentUserRoom ){
-                    user.socket.send(parsedMessage.payload.message);
+                    user.socket.send(JSON.stringify({
+                       type: "chat",
+                       payload: {   
+                       sender: parsedMessage.payload.sender,
+                       message: parsedMessage.payload.message,
+                       }
+                }));
                 }
             })
         }
