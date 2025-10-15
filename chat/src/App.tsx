@@ -24,7 +24,7 @@ function App() {
   }
 
   useEffect(() => {
-    const ws = new WebSocket("https://websocket-xnsb.vercel.app");
+    const ws = new WebSocket("wss://websocket-xnsb.vercel.app");
 
     ws.onopen = () => {
       console.log("Connected to server");
