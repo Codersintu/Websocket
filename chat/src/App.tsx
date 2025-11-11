@@ -7,15 +7,14 @@ import Profile from './pages/Profile';
 import { useEffect } from 'react';
 function App() {
   const navigate=useNavigate()
+  const token=localStorage.getItem("token2")
   useEffect(() => {
-    const token=localStorage.getItem("token2")
-  // Only redirect if there's NO token and user isn't already on /login
   if (!token && window.location.pathname !== "/login") {
     navigate("/login");
   }else{
     navigate("/")
   }
-}, []);
+}, [token]);
 
 
 

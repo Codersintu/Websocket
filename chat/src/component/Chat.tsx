@@ -93,7 +93,6 @@ function Chat() {
         Authorization:localStorage.getItem("token2")
       }
      })
-     console.log("wgtryhtjmdtrfed",response.data)
     setMessage(response.data.findChat.map((c:any) => ({
       sender: c.sender,
       text: c.message

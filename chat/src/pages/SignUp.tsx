@@ -21,6 +21,9 @@ function SignUp() {
   const email = useRecoilValue(emailAtom)
   const password = useRecoilValue(passwordAtom)
   const [loadable, setloadable] = useState(false)
+  const [Error, setError] = useState<{ message: string }[]>([])
+  const [logicError, setlogicError] = useState("")
+  console.log("error", Error)
   const navigate = useNavigate()
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -32,30 +35,55 @@ function SignUp() {
 
   async function signup(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
-    if (!file) return;
-    const compressedFile = await imageCompression(file, {
-      maxSizeMB: 1,
-      maxWidthOrHeight: 1920,
-      useWebWorker: true
-    })
-    setloadable(true)
+
     const email = emailRef.current?.value;
     const password = passwordRef.current?.value;
-    if (!email || !password) {
-      alert("Please fill all fields!");
-      return;
-    }
     const formData = new FormData();
-    formData.append("file", compressedFile)
-    formData.append("email", email || "")
-    formData.append("password", password || "")
+
+    // Optional image upload
+    if (file) {
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      });
+      formData.append("file", compressedFile);
+    }
+
+    formData.append("email", email || "");
+    formData.append("password", password || "");
+
     try {
+      setloadable(true);
+
       const response = await axios.post(`${BACKEND_URL}/api/v1/signup`, formData);
-      setIsRegistered(true)
+
+      // If successful
+      setIsRegistered(true);
+      setError([]);
+      setlogicError("");
+
     } catch (error: any) {
-      alert(error.response?.data?.message || "Signup failed");
+      const errData = error.response?.data;
+      console.log("Backend error:", errData);
+
+      // Handle validation details (array of errors)
+      if (errData?.details && Array.isArray(errData.details)) {
+        setError(errData.details);
+        setlogicError("");
+      }
+      // Handle single message (like "Email required")
+      else if (errData?.message) {
+        setlogicError(errData.message);
+        setError([]);
+      }
+      // Fallback generic error
+      else {
+        setlogicError("Signup failed. Please try again.");
+        setError([]);
+      }
     } finally {
-      setloadable(false)
+      setloadable(false);
     }
   }
 
@@ -66,26 +94,36 @@ function SignUp() {
 
     const email = emailRef.current?.value;
     const password = passwordRef.current?.value;
-
-    if (!email || !password) {
-      alert("Please fill all fields!");
-      return;
-    }
     setloadable(true)
     try {
       const response = await axios.post(`${BACKEND_URL}/api/v1/login`, {
         email,
         password,
       });
-
       const token2 = response.data.token2;
       if (token2) {
         localStorage.setItem("token2", token2); // store token
       }
+      setError([]);
+      setlogicError("");
       navigate("/")
 
     } catch (error: any) {
-      alert(error.response?.data?.message || "Signin failed");
+      const errData = error.response?.data;
+      console.log("Backend error:", errData);
+
+      if (errData?.details && Array.isArray(errData.details)) {
+        setError(errData.details);
+        setlogicError("");
+      }
+      else if (errData?.message) {
+        setlogicError(errData.message);
+        setError([]);
+      }
+      else {
+        setlogicError("SignIn failed. Please try again.");
+        setError([]);
+      }
     } finally {
       setloadable(false)
     }
@@ -103,7 +141,7 @@ function SignUp() {
                 <input
                   ref={emailRef}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {setEmail(e.target.value),setError([]),setlogicError("")}}
                   type="email"
                   placeholder="Email"
                   className="w-full p-2 border rounded-lg"
@@ -112,7 +150,7 @@ function SignUp() {
                 <input
                   ref={passwordRef}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {setPassword(e.target.value),setError([]),setlogicError("")}}
                   type="password"
                   placeholder="Password"
                   className="w-full p-2 border rounded-lg"
@@ -121,10 +159,45 @@ function SignUp() {
                 <button
                   onClick={SigninHandler}
                   type="submit"
-                  className={`w-full bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 ${loadable ? "opacity-50 cursor-not-allowed" : ""}`}
+                  disabled={loadable}
+                  className={`w-full flex justify-center items-center bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 ${loadable ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  {loadable ? "Loading🏃‍♂️‍➡️..." : "Login"}
+                  {loadable ? (
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="animate-spin h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        ></path>
+                      </svg>
+                      Loading...
+                    </div>
+                  ) : (
+                    "Login"
+                  )}
                 </button>
+                {Error.length > 0 && (
+                  <div className="text-red-400 text-sm mt-2">
+                    {Error.map((err, i) => (
+                      <p key={i}>⚠️ {err.message}</p>
+                    ))}
+                  </div>
+                )}
+                <div className="text-red-500">{logicError}</div>
               </form>
               <p className="text-center text-white mt-4">
                 Don’t have an account?{" "}
@@ -154,7 +227,7 @@ function SignUp() {
                 <input
                   ref={emailRef}
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {setEmail(e.target.value),setError([]),setlogicError("")}}
                   type="email"
                   placeholder="Email"
                   className="w-full p-2 border rounded-lg"
@@ -163,7 +236,7 @@ function SignUp() {
                 <input
                   ref={passwordRef}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {setPassword(e.target.value),setError([]),setlogicError("")}}
                   type="password"
                   placeholder="Password"
                   className="w-full p-2 border rounded-lg"
@@ -173,10 +246,45 @@ function SignUp() {
                   onClick={signup}
                   type="submit"
                   disabled={loadable}
-                  className={`w-full bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 ${loadable ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`w-full flex justify-center items-center bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 ${loadable ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  {loadable ? "Loading🏃‍♂️‍➡️..." : "Sign Up"}
+                  {loadable ? (
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="animate-spin h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        ></path>
+                      </svg>
+                      Loading...
+                    </div>
+                  ) : (
+                    "Sign Up"
+                  )}
                 </button>
+                {Error.length > 0 && (
+                  <div className="text-red-400 text-sm mt-2">
+                    {Error.map((err, i) => (
+                      <p key={i}>⚠️ {err.message}</p>
+                    ))}
+                  </div>
+                )}
+                <div className="text-red-500">{logicError}</div>
+
               </form>
               <p className="text-center mt-4 text-white">
                 Do you have an account?{" "}
