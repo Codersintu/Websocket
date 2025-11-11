@@ -2,8 +2,8 @@ import img1 from "../assets/profile_marco.png"
 import help from "../assets/help_icon.png"
 import send from "../assets/send_button.svg"
 import photo from "../assets/gallery_icon.svg"
-import { useRecoilValue } from "recoil"
-import { openUser } from "../Atom"
+import { useRecoilValue, useSetRecoilState } from "recoil"
+import { chatListAtom, openUser } from "../Atom"
 import { useEffect, useRef, useState } from "react"
 import { jwtDecode } from "jwt-decode"
 import axios from "axios"
@@ -14,7 +14,7 @@ function Chat() {
   const InputRef = useRef<HTMLInputElement>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const [message, setMessage] = useState<{ sender: string, text: string }[]>([])
-
+  const setChatList=useSetRecoilState(chatListAtom)
 
   // getting userId from token
   function getUserFromToken() {
@@ -32,8 +32,6 @@ function Chat() {
   }
   const user = getUserFromToken()
   const roomId = [user?.userId, openuser._id].sort().join("_")
-  
-  
 
 
   // when app mount that time it will run to connect to websocket
@@ -76,6 +74,15 @@ function Chat() {
       payload: { message: text, sender: user?.userId, roomId },
     }));
 
+    setChatList((prev)=>{
+      const alreadyExist=prev.find((u)=>u._id===openuser._id)
+      if (alreadyExist) {
+        return [openuser,...prev.filter((u)=>u._id !== openuser._id)]
+      }else{
+        return [openuser,...prev]
+      }
+    })
+    
     InputRef.current.value = "";
   }
   useEffect(()=>{

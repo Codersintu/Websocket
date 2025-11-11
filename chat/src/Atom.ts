@@ -29,3 +29,7 @@ export const openUser=atom<User>({
         
     }
 })
+export const chatListAtom = atom<any[]>({
+  key: "chatListAtom",
+  default: [],
+});

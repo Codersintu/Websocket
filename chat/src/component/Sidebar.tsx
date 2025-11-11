@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { BACKEND_URL } from "../Config";
-import { useSetRecoilState } from "recoil";
-import { openUser } from "../Atom";
+import { useRecoilValue, useSetRecoilState } from "recoil";
+import { chatListAtom, openUser } from "../Atom";
 
 export function useDebounce<T>(value: T, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -29,7 +29,8 @@ function Sidebar() {
   const [results, setResults] = useState<any[]>([]);
   const navigate = useNavigate();
   const debouncedInput = useDebounce(input, 500);
-  const setOpenUser=useSetRecoilState(openUser)
+  const setOpenUser = useSetRecoilState(openUser)
+  const chatList = useRecoilValue(chatListAtom)
   // Fetch users when debounced input changes
   useEffect(() => {
     const fetchUsers = async (query: string) => {
@@ -38,9 +39,9 @@ function Sidebar() {
         return;
       }
       try {
-        const response = await axios.get(`${BACKEND_URL}/api/v1/search?query=${query}`,{
-          headers:{
-            Authorization:localStorage.getItem("token2")
+        const response = await axios.get(`${BACKEND_URL}/api/v1/search?query=${query}`, {
+          headers: {
+            Authorization: localStorage.getItem("token2")
           }
         });
         setResults(response.data.users || []);
@@ -91,27 +92,59 @@ function Sidebar() {
         </div>
 
         <div className="flex flex-col gap-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent h-[calc(100vh-200px)]">
-          {results.length > 0 ? (
-            results.map((user, i) => (
-              <div className="flex flex-col gap-2 mb-4" key={i} onClick={()=>setOpenUser(user)}>
-                <div className="flex items-center gap-2 cursor-pointer" >
-                  <img className="border w-9 h-9 rounded-full" src={user.profileImg || img1} alt="" />
-                  <p className="text-white">{user.username}</p>
-                </div>
-                <span className="border"></span>
-              </div>
-            ))
+
+          {input.trim().length > 0 ? (
+            <>
+              <p className="text-gray-400 text-sm font-semibold">Search Results</p>
+              {results.length > 0 ? (
+                results.map((user, i) => (
+                  <div
+                    className="flex flex-col gap-2 mb-4 cursor-pointer"
+                    key={i}
+                    onClick={() => setOpenUser(user)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <img
+                        className="border w-9 h-9 rounded-full"
+                        src={user.profileImg || img1}
+                        alt=""
+                      />
+                      <p className="text-white">{user.username}</p>
+                    </div>
+                    <span className="border border-gray-700"></span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-400 text-sm italic">No users found</p>
+              )}
+            </>
           ) : (
-            Array.from({ length: 10 }).map((_, i) => (
-              <div className="flex flex-col gap-2 mb-4" key={i}>
-                <div className="flex items-center gap-2">
-                  <img className="border w-9 h-9 rounded-full" src={img1} alt="" />
-                  <p className="text-white">Sintu Kumar {i + 1}</p>
-                </div>
-                <span className="border"></span>
-              </div>
-            ))
+            <>
+              <p className="text-gray-400 text-sm font-semibold">Recent Chats</p>
+              {chatList.length > 0 ? (
+                chatList.map((c, i) => (
+                  <div
+                    className="flex flex-col gap-2 mb-4 cursor-pointer"
+                    key={i}
+                    onClick={() => setOpenUser(c)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <img
+                        className="border w-9 h-9 rounded-full"
+                        src={c.profileImg || img1}
+                        alt=""
+                      />
+                      <p className="text-white">{c.username}</p>
+                    </div>
+                    <span className="border border-gray-700"></span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-400 text-sm italic">No recent chats</p>
+              )}
+            </>
           )}
+
         </div>
       </div>
     </div>
